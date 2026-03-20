@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Scanner</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f5f5f5; }
+    h2 { color: #333; }
+    #qr-reader { width: 300px; margin: auto; background: white; border-radius: 8px; padding: 8px; }
+    #resultado { margin-top: 16px; font-size: 1.1em; color: #1a7f37; font-weight: bold; }
+    #status { margin-top: 8px; color: #888; font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h2>📷 Leitor de QR Code</h2>
+  <div id="qr-reader"></div>
+  <div id="resultado">Aponte para um QR Code...</div>
+  <div id="status"></div>
+
+  <script>
+    const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzv9XxPgg0N4h2yygbEG7krSZpouNatp678qdPRNqeif2HLOc28UtIQVbV0ssY_2SnA/exec";
+    let ultimoLido = "";
+
+    function onScanSuccess(decodedText) {
+      if (decodedText === ultimoLido) return;
+      ultimoLido = decodedText;
+
+      document.getElementById("resultado").innerText = "✅ " + decodedText;
+      document.getElementById("status").innerText = "⏳ Enviando para o Google Sheets...";
+
+      fetch(APPS_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ qrcode: decodedText })
+      }).then(() => {
+        document.getElementById("status").innerText = "✅ Salvo! Aguardando próximo scan...";
+        setTimeout(() => {
+          ultimoLido = "";
+          document.getElementById("resultado").innerText = "Aponte para um QR Code...";
+          document.getElementById("status").innerText = "";
+        }, 3000);
+      }).catch(() => {
+        document.getElementById("status").innerText = "❌ Erro ao enviar. Tente novamente.";
+        ultimoLido = "";
+      });
+    }
+
+    const scanner = new Html5QrcodeScanner("qr-reader", {
+      fps: 10,
+      qrbox: { width: 250, height: 250 }
+    });
+    scanner.render(onScanSuccess);
+  </script>
+</body>
+</html>
